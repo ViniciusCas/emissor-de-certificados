@@ -1,6 +1,7 @@
 ## @file color.py
 #  @brief implementation class for colors
 
+from typing import Union
 from math import ceil
 import re
 
@@ -10,7 +11,7 @@ import re
 #
 #  All colors are RGB coded, so do not have trasparency values, even knowing that alpha values can be 
 #  used, they only apply to the current color, not overlayed colors. 
-class Color:       
+class Color:          
     ## @brief Constructor for creating a color.
     #    
     #  @param color A string representing a hexadecimal color (e.g., "#RRGGBB" or "RRGGBB)
@@ -20,7 +21,7 @@ class Color:
     #  @exception ValueError Raised if color is a list and alpha value in not between ]0,1[.
     #  @exception ValueError Raised if color is a string and does not match the "#RRGGBB" or "RRGGBB"
     #  strings or are not hexadecimal values.
-    def __init__(self, color) -> None:
+    def __init__(self, color: Union[list, str]) -> None:
         if (type(color) is list):
             self._rgb = self.rgba_to_rgb(color)
             self._hex = self.rgba_to_hex(color)
@@ -29,12 +30,41 @@ class Color:
             self._hex = color
         else:
             raise TypeError(f"Expected parameter color type: str, list[int]. Got {type(color)}")
-    ## @brief Constructor for creating a color.
-    #    
-    #  @param hex_color A string representing a rgb color (e.g., "#RRGGBB" or "RRGGBB).
-    #  @exception ValueError Raised if hex_color does not match the "#RRGGBB" or "RRGGBB" strings
-    #  or are not hexadecimal values.
-
+        
+        self._r = self.rgb[0]
+        self._g = self.rgb[1]
+        self._b = self.rgb[2]
+    
+    ## @brief r channel in decimal value
+    @property
+    def r(self) -> int:
+        return self._r
+    
+    @r.setter
+    def r(self, new_value: int) -> None:
+        new_color = [new_value, self.rgb[1], self.rgb[2]]
+        
+        self.__dict__.update(Color(new_color).__dict__)
+    
+    @property
+    def g(self) -> int:
+        return self._g
+    
+    @g.setter
+    def g(self, new_value: int) -> None:
+        new_color = [self.rgb[0], new_value, self.rgb[2]]
+        
+        self.__dict__.update(Color(new_color).__dict__)
+    
+    @property
+    def b(self) -> int:
+        return self._b
+    
+    @b.setter
+    def b(self, new_value: int) -> None:
+        new_color = [self.rgb[0], self.rgb[1], new_value]
+        
+        self.__dict__.update(Color(new_color).__dict__)
     
     ## @brief A RGB list (e.g., [r,g,b]) coded value color 
     #  
@@ -45,9 +75,8 @@ class Color:
         return self._rgb
     
     @rgb.setter
-    def rgb(self, new_value: list) -> None:               
-        self._rgb = self.rgba_to_rgb(new_value)
-        self._hex = self.rgba_to_hex(new_value)
+    def rgb(self, new_value: list) -> None:       
+        self.__dict__.update(Color(new_value).__dict__)
         
     ## @brief A hexadecimal string (e.g. "#RRGGBB") coded value color  
     #
@@ -59,8 +88,7 @@ class Color:
     
     @hex.setter
     def hex(self, new_value: str) -> None:       
-        self._rgb = self.hex_to_rgb(new_value)
-        self._hex = new_value
+        self.__dict__.update(Color(new_value).__dict__)
     
     ## @brief define a human-readable string representation of the color.
     #  
@@ -74,6 +102,7 @@ class Color:
     #  @param rgba_color A string with the rgba color value.
     #  @return A Color with the color in hexadecimal format "#RRGGBB".
     #  @exception ValueError Raised if rgba_color leght != 4 or != 3.
+    #  @exception ValueError Raised if any R,G or B channel value is not between ]0,256].
     #  @exception ValueError Raised if alpha value in not between ]0,1[.
     @staticmethod
     def rgba_to_rgb(rgba_color: list) -> list[int]:
@@ -82,6 +111,9 @@ class Color:
         if (len(rgba_color) == 4):
             if (rgba_color[3] < 0 or rgba_color[3] > 1):
                 raise ValueError(f"Invalid alpha value. Expected should be between ]0,1[")
+        for i in range(3):
+            if (rgba_color[i] < 0 or rgba_color[i] > 255):
+                raise ValueError(f"")
         
         if (len(rgba_color) == 3):
             rgba_color.append(1)
@@ -98,6 +130,7 @@ class Color:
     #  @param rgba_color A string with the rgba color value.
     #  @return A Color with the color in hexadecimal format "#RRGGBB".
     #  @exception ValueError Raised if rgba_color leght != 4 or != 3.
+    #  @exception ValueError Raised if any R,G or B channel value is not between ]0,256].
     #  @exception ValueError Raised if alpha value in not between ]0,1[.
     @staticmethod
     def rgba_to_hex(rgba_color: list) -> str:
@@ -106,7 +139,10 @@ class Color:
         if (len(rgba_color) == 4):
             if (rgba_color[3] < 0 or rgba_color[3] > 1):
                 raise ValueError(f"Invalid alpha value. Expected should be between ]0,1[")
-        
+        for i in range(3):
+            if (rgba_color[i] < 0 or rgba_color[i] > 255):
+                raise ValueError(f"")
+            
         if (len(rgba_color) == 3):
             rgba_color.append(1)
         
@@ -139,29 +175,44 @@ class Color:
     
     ## @brief Create a blended color from multiple colors in the color_list.
     #
+    #  Given a list containing color values (e.g., RGB or HEX) or a Color class, return the mean of
+    #  every color at the list.
+    #  The list can contain:
+    #   - Color class instances;
+    #   - hexadecimal string representing a color value;
+    #   - A list with lenght of 3 or 4 (for alpha values).
+    #
     #  @param color_list A list containing all hexadecimal colors to be added.
-    #  @return A string with the final blended color in hexadecimal format "#RRGGBB".
+    #  @return A new Color instance representing the final blended color.
     #  @exception ValueError Raised if color_list leght == 0.
-    #  @exception TypeError  Raised if any item on a list is not a class Color.
+    #  @exception TypeError  Raised if any item on a list is not a: class Color, a list or string.
     @staticmethod
     def blend_list(color_list: list) -> 'Color':
         if (len(color_list) == 0):
             raise ValueError(f"Expected at least 1 color, got length {len(color_list)}")
         
-        r = 0
-        g = 0
-        b = 0
-        for i, hex_color in enumerate(color_list):
-            rgb_color = Color.hex_to_rgb(hex_color)
-            r += rgb_color[0]
-            g += rgb_color[1]
-            b += rgb_color[2]
+        new_r = 0
+        new_g = 0
+        new_b = 0
+        for i, color in enumerate(color_list):
+            rgb_color = ""
+            if (isinstance(color, Color)):
+                rgb_color = color.rgb
+            elif (isinstance(color, list)):
+                rgb_color = Color.rgba_to_rgb(color)
+            elif (isinstance(color, str)):
+                rgb_color = Color.hex_to_rgb(color)
+            else:
+                raise TypeError(f"Expected type: Color, list or string. Got {type(color)}")
+            new_r += rgb_color[0]
+            new_g += rgb_color[1]
+            new_b += rgb_color[2]
             
-        r = ceil(r / len(color_list))
-        g = ceil(g / len(color_list))
-        b = ceil(b / len(color_list))
+        new_r = ceil(new_r / len(color_list))
+        new_g = ceil(new_g / len(color_list))
+        new_b = ceil(new_b / len(color_list))
         
-        return Color([r, g, b, 1])
+        return Color([new_r, new_g, new_b])
     
     ## @brief Create a blended color.
     #
