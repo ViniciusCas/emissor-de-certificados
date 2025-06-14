@@ -221,8 +221,8 @@ class Color:
     #  @return A string with the final blended color in hexadecimal format "#RRGGBB".
     #  @exception ValueError Raised if color_list leght == 0.
     #  @exception TypeError  Raised if any item on a list is not a class Color.
-    def blend(self, other: 'Color', inplace: bool = False) -> 'Color':
-        blended = Color.blend_list([self.hex, other.hex])
+    def blend(self, other: Union['Color', str, list], inplace: bool = False) -> 'Color':
+        blended = Color.blend_list([self, other])
         if (inplace == True):
             self.__dict__.update(blended.__dict__)
             return self
