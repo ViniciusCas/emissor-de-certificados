@@ -7,9 +7,7 @@
 #
 #  @author Vinicius Casimiro
 #  @version 0.1
-
-"""
-@defgroup abc Abstract  
-@brief   Abstract implementations for a base class.
-@ingroup themes
-"""
+#
+#  @defgroup abc Abstract  
+#  @brief   Abstract implementations for a base class.
+#  @ingroup themes
